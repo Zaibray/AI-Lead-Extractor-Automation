@@ -1,0 +1,15 @@
+SmartFlow: AI Lead Triage & Auto-Responder
+Description: An intelligent system that captures leads from Google Forms, categorizes them using Llama-3, and sends personalized email responses.
+
+Tools: n8n, Groq, Google Sheets, Gmail, Slack.
+
+Status: Live & Functional.
+
+Ye Content Kahan Likhna Hai?
+Apni main repository (AI-Automation-Portfolio) ke main page par jayein.
+
+Wahan "Add a README" ka button hoga, us par click karein.
+
+Upar wala text wahan paste kar dein.
+
+Green button "Commit changes" par click kar dein.
