@@ -1,0 +1,378 @@
+{
+  "name": "\"SmartFlow: AI Lead Triage & Auto-Responder\"",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Cstomer Question",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Name"
+            },
+            {
+              "fieldLabel": "Email"
+            },
+            {
+              "fieldLabel": "Message"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -464,
+        -128
+      ],
+      "id": "0e9ff511-0085-4bec-a924-99a7f6ef4817",
+      "name": "On form submission",
+      "webhookId": "617677c2-5a55-4138-a5cf-2391372f1124"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        96
+      ],
+      "id": "262b75be-1653-44f3-96cc-f0f02907bc5c",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "GY8dJ5QCcCX6SqD5",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        192,
+        96
+      ],
+      "id": "96ff6e09-c993-4b39-9faf-24e0a6418ad4",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "GY8dJ5QCcCX6SqD5",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.Message }}",
+        "options": {
+          "systemMessage": "=Prompt:\n\n\"Act as an expert Lead Management Assistant. Analyze the user's message provided below and categorize it into EXACTLY one of these categories: [Sales, Support, General Inquiry].\n\nUser Message:\n\nInstructions: > - If the user is asking about pricing, services, or buying, categorize as 'Sales'.\n\nIf the user is complaining or asking for help with an existing service, categorize as 'Support'.\n\nOtherwise, use 'General Inquiry'.\n\nOUTPUT ONLY THE CATEGORY NAME. No extra text or explanation.\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -240,
+        -128
+      ],
+      "id": "13e26880-bb0d-4d14-b409-e1dda79158ce",
+      "name": "AI Lead Categorization"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "options": {
+          "systemMessage": "=Prompt:\n\n\"Act as a Professional Customer Success Manager. Write a short, polite, and helpful email response to the user's inquiry.\n\nUser Name: {{ $('On form submission').item.json.Name }} Category:{{ $json.output }}  User Inquiry: {{ $('On form submission').item.json.Message }}\n\nGuidelines:\n\nReply by their name in HTML format and format nicely.\n\nKeep it under 3 sentences.\n\nTone: Professional and welcoming.\n\nMention that our team will reach out within 24 hours.\n\nDo not include 'Subject Line' or signatures, just the email body.\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        112,
+        -128
+      ],
+      "id": "2ad39944-289a-48dd-8ba9-aa06836bf84c",
+      "name": "AI-Powered Response Generator"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('On form submission').item.json.Email }}",
+        "subject": "={{ $('On form submission').item.json.Message }}",
+        "message": "={{ $('AI-Powered Response Generator').item.json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        -128
+      ],
+      "id": "3118f178-c251-4a82-bb62-fe7e93a68bb0",
+      "name": "Send a message",
+      "webhookId": "e1261336-ba17-44ec-bf54-3e49cecda1db",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1U1CF7mzsZ6lakqh",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1F6pk7GQO3lxfugGRD7vuktyOdRcwzwCB00SesSZl414",
+          "mode": "list",
+          "cachedResultName": "newsheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1F6pk7GQO3lxfugGRD7vuktyOdRcwzwCB00SesSZl414/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 379825258,
+          "mode": "list",
+          "cachedResultName": "Ai lead Record",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1F6pk7GQO3lxfugGRD7vuktyOdRcwzwCB00SesSZl414/edit#gid=379825258"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('On form submission').item.json.Name }}",
+            "Email": "={{ $('On form submission').item.json.Email }}",
+            "Message": "={{ $('On form submission').item.json.Message }}",
+            "Ai_Content": "={{ $json.clean_content }}",
+            "Categories": "={{ $('AI Lead Categorization').item.json.output }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ai_Content",
+              "displayName": "Ai_Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Categories",
+              "displayName": "Categories",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        -128
+      ],
+      "id": "81c3bace-7062-4712-a801-1ee688825ee4",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "VRuTih8ZlBraHMm0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ca6b29f2-5be5-420f-b492-7b4d6ca082bc",
+              "name": "clean_content",
+              "value": "={{ $json.output.replace(/<\\/?[^>]+(>|$)/g, \"\").replace(/&nbsp;/g, \" \").trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        -128
+      ],
+      "id": "26f008f8-5c91-4cc4-9ce1-2d968d4fd74e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0A9M5345H9",
+          "mode": "list",
+          "cachedResultName": "new-channel"
+        },
+        "text": "=New Lead Received: Name: {{ $('On form submission').item.json.Name }} Category: {{ $node[\"AI Lead Categorization\"].json.output }} Ai_Response:{{ $('Edit Fields').item.json.clean_content }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1104,
+        -128
+      ],
+      "id": "210d68fc-7f4e-4985-88f8-b76553b8740c",
+      "name": "Send a message1",
+      "webhookId": "8b9207aa-fe9a-45c3-b719-9820f5ed582c",
+      "credentials": {
+        "slackApi": {
+          "id": "Vg48LrOSL7J9GNmj",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "AI Lead Categorization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Lead Categorization",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI-Powered Response Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Lead Categorization": {
+      "main": [
+        [
+          {
+            "node": "AI-Powered Response Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI-Powered Response Generator": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cd49d99c-b902-4ec7-96fc-8ed97eb2971b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f8ca2cfbc5d329b208d667b3c769bcda0d834955c2bd2bcb4b8f69f88ec4b92f"
+  },
+  "id": "TTZ8VV9ppyycYzBg",
+  "tags": []
+}
